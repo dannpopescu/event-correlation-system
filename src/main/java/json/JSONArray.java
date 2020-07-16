@@ -11,25 +11,16 @@ public class JSONArray extends JSON {
     }
 
     @Override
-    public boolean isValidKey(String key) {
-        if (key.length() > 10) {
-            return false;
-        }
-        for (char c : key.toCharArray()) {
-            if (!Character.isDigit(c)) {
-                return false;
-            }
-        }
-        return Integer.parseInt(key) < this.array.size();
+    public Object get(String index) {
+        return get(Integer.parseInt(index));
     }
 
     public Object get(int index) {
         return this.array.get(index);
     }
 
-    @Override
-    public Object get(String index) {
-        return get(Integer.parseInt(index));
+    public boolean containsIndex(int index) {
+        return index >= 0 && index < this.array.size();
     }
 
     public void put(Object object) {
@@ -48,6 +39,10 @@ public class JSONArray extends JSON {
     @Override
     public Object delete(String key) {
         return delete(Integer.parseInt(key));
+    }
+
+    public int size() {
+        return this.array.size();
     }
 
     @Override

@@ -1,13 +1,12 @@
 package json;
 
-import exceptions.KeyNotFoundException;
-import exceptions.NotArrayException;
-import exceptions.NotObjectException;
-import org.apache.commons.io.FileUtils;
+import exceptions.JSONException;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Optional;
@@ -36,16 +35,6 @@ class JSONTest {
         validateOutput();
     }
 
-    private void validateOutput() {
-        try {
-            assertEquals(
-                    FileUtils.readFileToString(new File(refFile), "utf-8"),
-                    FileUtils.readFileToString(new File(outputFile), "utf-8"));
-        } catch (IOException e) {
-            fail("IOException when validating the output.");
-        }
-    }
-
     private JSON generateJSON() {
         JSONParser parser = new JSONParser();
         try {
@@ -54,6 +43,16 @@ class JSONTest {
             fail("IOException when loading the json file for parsing.");
         }
         return null;
+    }
+
+    private void validateOutput() {
+        try {
+            assertEquals(
+                    new String(Files.readAllBytes(Path.of(refFile))),
+                    new String(Files.readAllBytes(Path.of(outputFile))));
+        } catch (IOException e) {
+            fail("IOException when validating the output.");
+        }
     }
 
     private void generateOutput(JSON json) {
@@ -87,7 +86,7 @@ class JSONTest {
                     } else {
                         outputMessage = obj.toString();
                     }
-                } catch (KeyNotFoundException | NotArrayException | NotObjectException | IndexOutOfBoundsException e) {
+                } catch (JSONException e) {
                     outputMessage = "GET_" + e.getMessage();
                 }
                 break;
@@ -96,7 +95,7 @@ class JSONTest {
                 try {
                     String value = queryTokens.pollLast();
                     json.put(queryTokens, value);
-                } catch (KeyNotFoundException | NotArrayException | NotObjectException | IndexOutOfBoundsException e) {
+                } catch (JSONException e) {
                     outputMessage = "PUT_" + e.getMessage();
                 }
                 break;
@@ -104,7 +103,7 @@ class JSONTest {
             case "DEL":
                 try {
                     json.delete(queryTokens);
-                } catch (KeyNotFoundException | NotArrayException | NotObjectException | IndexOutOfBoundsException e) {
+                } catch (JSONException e) {
                     outputMessage = "DEL_" + e.getMessage();
                 }
         }

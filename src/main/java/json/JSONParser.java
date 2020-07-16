@@ -5,19 +5,15 @@ import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.Deque;
 
-/**
- * Note: probably won't work if an array contains only values and not an json.JSONObject
- */
 public class JSONParser {
 
     private final Deque<JSONArray> arrayStack;
     private final Deque<JSONObject> objectStack;
-    private final Deque<Boolean> isCursorInsideArray;
 
     private JSON root;
 
-    private String currentKey;
-    private Object currentValue;
+    private String key;
+    private Object value;
 
     private static final int QUOTED_STRING = 34;
     private static final int OPEN_ARRAY = '[';
@@ -28,7 +24,6 @@ public class JSONParser {
     public JSONParser() {
         this.objectStack = new ArrayDeque<>();
         this.arrayStack = new ArrayDeque<>();
-        this.isCursorInsideArray = new ArrayDeque<>();
     }
 
     public JSON parse(String filePath) throws IOException {
@@ -43,17 +38,15 @@ public class JSONParser {
                 case JSONParser.OPEN_OBJECT -> processNewObject();
                 case JSONParser.CLOSE_ARRAY -> {
                     arrayStack.pop();
-                    isCursorInsideArray.pop();
                 }
                 case JSONParser.CLOSE_OBJECT -> {
                     objectStack.pop();
-                    isCursorInsideArray.pop();
                 }
                 case JSONParser.QUOTED_STRING -> processQuotedString(tokenizer.sval);
                 case StreamTokenizer.TT_WORD -> processUnquotedString(tokenizer.sval);
             }
 
-            if (currentKey != null && currentValue != null) {
+            if (key != null && value != null) {
                 putKeyValuePair();
             }
 
@@ -71,12 +64,7 @@ public class JSONParser {
 
         handleIfCorrespondsToAKey(array);
 
-        if (isCursorInsideArray.peek() != null && isCursorInsideArray.peek()) {
-            arrayStack.peek().put(array);
-        }
-
         arrayStack.push(array);
-        isCursorInsideArray.push(Boolean.TRUE);
 
         if (root == null) {
             root = array;
@@ -84,8 +72,8 @@ public class JSONParser {
     }
 
     private boolean handleIfCorrespondsToAKey(JSON json) {
-        if (currentKey != null) {
-            currentValue = json;
+        if (key != null) {
+            value = json;
             putKeyValuePair();
             return true;
         }
@@ -98,39 +86,30 @@ public class JSONParser {
             arrayStack.peek().put(object);
         }
         objectStack.push(object);
-        isCursorInsideArray.push(Boolean.FALSE);
     }
 
     private void processQuotedString(String string) {
         string = "\"" + string + "\"";
-        if (isCursorInsideArray.peek()) {
-            arrayStack.peek().put(string);
-            return;
-        }
-        if (currentKey == null) {
-            currentKey = string;
+        if (key == null) {
+            key = string;
         } else {
-            currentValue = string;
+            value = string;
         }
     }
 
     private void processUnquotedString(String string) {
-        currentValue = switch (string) {
+        value = switch (string) {
             case "false" -> Boolean.FALSE;
             case "true" -> Boolean.TRUE;
             case "null" -> "null";
             default -> new BigInteger(string);
         };
-        if (isCursorInsideArray.peek()) {
-            arrayStack.peek().put(currentValue);
-            currentValue = null;
-        }
     }
 
     private void putKeyValuePair() {
-        objectStack.peek().put(currentKey, currentValue);
-        currentKey = null;
-        currentValue = null;
+        objectStack.peek().put(key, value);
+        key = null;
+        value = null;
     }
 
     private void setTokenizerSyntax(StreamTokenizer tokenizer) {

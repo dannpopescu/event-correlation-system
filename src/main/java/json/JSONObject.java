@@ -1,7 +1,5 @@
 package json;
 
-import exceptions.KeyNotFoundException;
-
 import java.util.HashMap;
 
 public class JSONObject extends JSON {
@@ -12,16 +10,12 @@ public class JSONObject extends JSON {
         this.map = new HashMap<>();
     }
 
-    @Override
-    public boolean isValidKey(String key) {
+    public boolean containsKey(String key) {
         return this.map.containsKey(key);
     }
 
     @Override
     public Object get(String key) {
-        if (!this.map.containsKey(key)) {
-            throw new KeyNotFoundException("KEY_NOT_FOUND " + key);
-        }
         return this.map.get(key);
     }
 

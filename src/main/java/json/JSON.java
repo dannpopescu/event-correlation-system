@@ -1,74 +1,93 @@
 package json;
 
-import exceptions.NotArrayException;
-import exceptions.NotObjectException;
+import exceptions.JSONException;
 
-import java.util.ArrayDeque;
 import java.util.Queue;
 
 public abstract class JSON {
 
-    private String lastAccessedKey;
+    /**
+     * Last accessed key when traversing the JSON object.
+     * Used for generating the exceptions' message.
+     */
+    private String lastAccessedNode;
 
     public JSON() {
-        this.lastAccessedKey = "root";
-    }
-
-    public abstract boolean isValidKey(String key);
-
-    public boolean isValidKeySequence(Queue<String> keys) {
-        Queue<String> k = new ArrayDeque<>(keys);
-        Object obj = this;
-        while (!k.isEmpty()) {
-            if (obj instanceof JSON && ((JSON) obj).isValidKey(k.peek())) {
-                obj = ((JSON) obj).get(k.poll());
-            } else {
-                return false;
-            }
-        }
-        return true;
+        this.lastAccessedNode = "root";
     }
 
     public abstract Object get(String key);
 
-    public Object get(Queue<String> keys) {
-        try {
-            Object structure = traverseUpToLastNode(keys);
-            checkValidKeyForStructure(structure, keys.peek());
-            return ((JSON) structure).get(keys.poll());
-        } catch (IndexOutOfBoundsException e) {
-            throw new IndexOutOfBoundsException("ERROR_INDEX_OUT_OF_RANGE " + lastAccessedKey);
-        }
+    public Object get(Queue<String> keys) throws JSONException {
+        Object node = traverseUpToLastNode(keys);
+        checkValidKey(node, keys.peek());
+        return ((JSON) node).get(keys.poll());
     }
 
-    private Object traverseUpToLastNode(Queue<String> keys) {
-        Object obj = this;
-        lastAccessedKey = "root";
+    private Object traverseUpToLastNode(Queue<String> keys) throws JSONException {
+        this.lastAccessedNode = "root";
+        Object node = this;
+        String currentKey;
+
         while (keys.size() > 1) {
-            checkValidKeyForStructure(obj, keys.peek());
-            try {
-                obj = ((JSON) obj).get(keys.peek());
-            } catch (IndexOutOfBoundsException e) {
-                throw new IndexOutOfBoundsException("ERROR_INDEX_OUT_OF_RANGE " + lastAccessedKey);
+            currentKey = keys.poll();
+            checkValidKey(node, currentKey);
+            node = ((JSON) node).get(currentKey);
+            this.lastAccessedNode = currentKey;
+        }
+        return node;
+    }
+
+    protected void checkValidKey(Object node, String key) throws JSONException {
+        if (isIndex(key)) {
+            if (!(node instanceof JSONArray)) {
+                throw new JSONException("ERROR_NOT_ARRAY " + this.lastAccessedNode);
+            } else if (!((JSONArray) node).containsIndex(Integer.parseInt(key))) {
+                throw new JSONException("ERROR_INDEX_OUT_OF_RANGE " + this.lastAccessedNode);
             }
-            lastAccessedKey = keys.poll();
-        }
-        return obj;
-    }
-
-    private void checkValidKeyForStructure(Object structure, String key) {
-        if (isIndex(key) && !(structure instanceof JSONArray)) {
-            throw new NotArrayException("ERROR_NOT_ARRAY " + lastAccessedKey);
-        } else if (isKey(key) && !(structure instanceof JSONObject)) {
-            throw new NotObjectException("ERROR_NOT_OBJECT " + lastAccessedKey);
+        } else if (isKey(key)) {
+            if (!(node instanceof JSONObject)) {
+                throw new JSONException("ERROR_NOT_OBJECT " + this.lastAccessedNode);
+            } else if (!((JSONObject) node).containsKey(key)) {
+                throw new JSONException("KEY_NOT_FOUND " + key);
+            }
         }
     }
 
-    protected boolean isKey(String s) {
+    public abstract void put(String key, Object value);
+
+    public void put(Queue<String> keys, Object value) {
+        Object node = traverseUpToLastNode(keys);
+        String key = keys.poll();
+        if (!(node instanceof JSONObject)) {
+            throw new JSONException("ERROR_NOT_OBJECT " + this.lastAccessedNode);
+        }
+        ((JSON) node).put(key, value);
+    }
+
+    public abstract Object delete(String key);
+
+    public void delete(Queue<String> keys) {
+        Object node = traverseUpToLastNode(keys);
+//        checkValidKeyForNode(node, keys.peek());
+        String key = keys.poll();
+        if (isIndex(key)) {
+            if (!(node instanceof JSONArray)) {
+                throw new JSONException("ERROR_NOT_ARRAY " + this.lastAccessedNode);
+            }
+        } else if (isKey(key)) {
+            if (!(node instanceof JSONObject)) {
+                throw new JSONException("ERROR_NOT_OBJECT " + this.lastAccessedNode);
+            }
+        }
+        ((JSON) node).delete(key);
+    }
+
+    private static boolean isKey(String s) {
         return s.startsWith("\"") && s.endsWith("\"");
     }
 
-    protected boolean isIndex(String s) {
+    private static boolean isIndex(String s) {
         if (s.length() > 10) {
             return false;
         }
@@ -78,30 +97,6 @@ public abstract class JSON {
             }
         }
         return true;
-    }
-
-    public abstract void put(String key, Object value);
-
-    public void put(Queue<String> keys, Object value) {
-//        try {
-            Object structure = traverseUpToLastNode(keys);
-            checkValidKeyForStructure(structure, keys.peek());
-            ((JSON) structure).put(keys.poll(), value);
-//        } catch (IndexOutOfBoundsException e) {
-//            throw new IndexOutOfBoundsException("ERROR_INDEX_OUT_OF_RANGE " + lastAccessedKey);
-//        }
-    }
-
-    public abstract Object delete(String key);
-
-    public void delete(Queue<String> keys) {
-//        try {
-            Object structure = traverseUpToLastNode(keys);
-            checkValidKeyForStructure(structure, keys.peek());
-            ((JSON) structure).delete(keys.poll());
-//        } catch (IndexOutOfBoundsException e) {
-//            throw new IndexOutOfBoundsException("ERROR_INDEX_OUT_OF_RANGE " + lastAccessedKey);
-//        }
     }
 
 }
