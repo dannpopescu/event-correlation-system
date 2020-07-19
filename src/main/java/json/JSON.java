@@ -32,7 +32,7 @@ public abstract class JSON {
         return node;
     }
 
-    protected void checkValidKey(Object node, String key) throws JSONException {
+    private void checkValidKey(Object node, String key) throws JSONException {
         if (isIndex(key)) {
             if (!(node instanceof JSONArray)) {
                 throw new JSONException("ERROR_NOT_ARRAY " + this.lastAccessedNode);
