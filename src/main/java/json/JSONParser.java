@@ -7,8 +7,8 @@ import java.util.Deque;
 
 public class JSONParser {
 
-    private final Deque<JSONArray> arrayStack;
-    private final Deque<JSONObject> objectStack;
+    private final Deque<JSONArray> arrayStack = new ArrayDeque<>();
+    private final Deque<JSONObject> objectStack = new ArrayDeque<>();
 
     private JSON root;
 
@@ -21,11 +21,6 @@ public class JSONParser {
     private static final int OPEN_OBJECT = '{';
     private static final int CLOSE_OBJECT = '}';
 
-    public JSONParser() {
-        this.objectStack = new ArrayDeque<>();
-        this.arrayStack = new ArrayDeque<>();
-    }
-
     public JSON parse(String filePath) throws IOException {
         StreamTokenizer tokenizer = new StreamTokenizer(new BufferedReader(new FileReader(filePath)));
         setTokenizerSyntax(tokenizer);
@@ -34,15 +29,11 @@ public class JSONParser {
 
         while (currentToken != StreamTokenizer.TT_EOF) {
             switch (currentToken) {
-                case JSONParser.OPEN_ARRAY -> processNewArray();
-                case JSONParser.OPEN_OBJECT -> processNewObject();
-                case JSONParser.CLOSE_ARRAY -> {
-                    arrayStack.pop();
-                }
-                case JSONParser.CLOSE_OBJECT -> {
-                    objectStack.pop();
-                }
-                case JSONParser.QUOTED_STRING -> processQuotedString(tokenizer.sval);
+                case OPEN_ARRAY -> processNewArray();
+                case OPEN_OBJECT -> processNewObject();
+                case CLOSE_ARRAY -> arrayStack.pop();
+                case CLOSE_OBJECT -> objectStack.pop();
+                case QUOTED_STRING -> processQuotedString(tokenizer.sval);
                 case StreamTokenizer.TT_WORD -> processUnquotedString(tokenizer.sval);
             }
 
@@ -56,36 +47,30 @@ public class JSONParser {
         return root;
     }
 
-    /**
-     * Creates a new array
-     */
     private void processNewArray() {
         JSONArray array = new JSONArray();
-
-        handleIfCorrespondsToAKey(array);
-
+        if (key != null) {
+            value = array;
+            putKeyValuePair();
+        }
         arrayStack.push(array);
-
         if (root == null) {
             root = array;
         }
     }
 
-    private boolean handleIfCorrespondsToAKey(JSON json) {
-        if (key != null) {
-            value = json;
-            putKeyValuePair();
-            return true;
-        }
-        return false;
-    }
-
     private void processNewObject() {
         JSONObject object = new JSONObject();
-        if (!handleIfCorrespondsToAKey(object)) {
+        if (key != null) {
+            value = object;
+            putKeyValuePair();
+        } else {
             arrayStack.peek().put(object);
         }
         objectStack.push(object);
+        if (root == null) {
+            root = object;
+        }
     }
 
     private void processQuotedString(String string) {

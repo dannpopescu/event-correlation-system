@@ -1,7 +1,5 @@
 package json;
 
-import exceptions.JSONException;
-
 import java.util.Queue;
 
 public abstract class JSON {
@@ -10,11 +8,7 @@ public abstract class JSON {
      * Last accessed key when traversing the JSON object.
      * Used for generating the exceptions' message.
      */
-    private String lastAccessedNode;
-
-    public JSON() {
-        this.lastAccessedNode = "root";
-    }
+    private String lastAccessedNode = "root";
 
     public abstract Object get(String key);
 
@@ -69,11 +63,12 @@ public abstract class JSON {
 
     public void delete(Queue<String> keys) {
         Object node = traverseUpToLastNode(keys);
-//        checkValidKeyForNode(node, keys.peek());
         String key = keys.poll();
         if (isIndex(key)) {
             if (!(node instanceof JSONArray)) {
                 throw new JSONException("ERROR_NOT_ARRAY " + this.lastAccessedNode);
+            } else if (!((JSONArray) node).containsIndex(Integer.parseInt(key))) {
+                throw new JSONException("ERROR_INDEX_OUT_OF_RANGE " + this.lastAccessedNode);
             }
         } else if (isKey(key)) {
             if (!(node instanceof JSONObject)) {

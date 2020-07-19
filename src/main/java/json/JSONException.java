@@ -1,4 +1,4 @@
-package exceptions;
+package json;
 
 public class JSONException extends RuntimeException {
 
