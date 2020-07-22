@@ -1,4 +1,4 @@
-package json;
+package com.danpopescu.eventcorrelation;
 
 import java.util.HashMap;
 

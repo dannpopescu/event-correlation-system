@@ -1,4 +1,4 @@
-package json;
+package com.danpopescu.eventcorrelation;
 
 import java.io.*;
 import java.math.BigInteger;
